@@ -1,6 +1,6 @@
 # Morghul's Chronicles (V2)
 
-Jeu de combat au tour par tour en ligne de commande, développé en Python avec stockage des données dans MongoDB.
+Jeu de combat au tour par tour en ligne de commande, développé en Python avec stockage des données dans MongoDB, dans le cadre d'un projet d'études en 2ème année.
 
 ## Fonctionnement
 
@@ -22,33 +22,6 @@ La partie s'arrête lorsque toute l'équipe est vaincue. Le pseudo, le nombre de
 
 - Python 3.12+
 - Un serveur MongoDB local accessible sur `mongodb://localhost:27017`
-
-## Installation et lancement
-
-1. Cloner le dépôt :
-
-```bash
-git clone <url-du-depot>
-cd Morghul-s-V2
-```
-
-2. Créer un environnement virtuel et installer les dépendances :
-
-```bash
-python -m venv .venv
-# Sous Windows (PowerShell)
-.venv\Scripts\Activate.ps1
-# Sous Linux / macOS
-source .venv/bin/activate
-
-pip install pymongo rich InquirerPy
-```
-
-3. S'assurer que le service MongoDB tourne en local, puis lancer le jeu :
-
-```bash
-python main.py
-```
 
 Au démarrage, `db_init.py` se connecte à MongoDB et réinitialise les collections `heroes` et `monsters` avec les données de base. Le classement (`leaderboard`) est conservé entre les parties.
 
