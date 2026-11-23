@@ -1,76 +1,278 @@
-from utils import *
-from interfaces import *
+import copy
+import os
+from random import choice
+from time import sleep
 
-#?==================================== DEBUT DU JEU ====================================
+from pymongo import MongoClient
+from rich.align import Align
+from rich.console import Console
+from rich.layout import Layout
+from rich.panel import Panel
 
-def build_team():
-    team = select_heroes(3)
-    print_team(team)
-    return team
+LAYOUT = Layout()
+console = Console()
 
-#?==================================== CORPS DU JEU ====================================
+TAILLE_MAX_EQUIPE = 3
+MENU = ["Jouer", "Leaderboard", "Quitter"]
+BANNED_PSEUDOS = {"admin", "root", "superuser"}
 
-def waves(team):
-    wave_counter = 1
-    while get_alive_heroes(team):
-        wave_message(wave_counter)
-        picked_monster = monster_selection()
-        round(team, picked_monster)
-        if win(team, picked_monster):
-            print(f"Bravo, tu as surmonté la vague {wave_counter} !")
-            wave_counter += 1
-        else :
-            print(f"Toute ton équipe est morte, tu as survécu à {wave_counter - 1} vague(s)...")
-    return wave_counter - 1
-
-
-def round(team, picked_monster):
-    while is_team_alive(team) and picked_monster.is_alive() :
-        if not team_turn(team, picked_monster) :
-            dead_hero = monster_turn(team, picked_monster)
-            if dead_hero is not None :
-                team = get_alive_heroes(team)
-                print(f"\nLe monstre a vaincu {dead_hero.name}...")
-        else : 
-            print("\nTon équipe a achevé le monstre !")
-    return team
+LAYOUT.split_row(
+    Layout(name="left", ratio=2),
+    Layout(name="center", ratio=3),
+    Layout(name="right", ratio=2),
+)
 
 
-def team_turn(team, monster):
-    if monster.is_alive():
-        for hero in get_alive_heroes(team):
-            hero.deal_damage(monster)
-            print(f"\n{hero.name} a infligé {max(1, hero.attack - monster.defense)} dégat(s) au monstre !")
-            if not monster.is_alive():
-                return True
-    return False
+def create_panel(title="", text="", color="yellow"):
+    return Panel(
+        Align.center(f"[{color}]{text}[/{color}]", vertical="middle"),
+        title=title,
+        border_style=color,
+    )
 
 
-def monster_turn(team,monster):
-    if monster.is_alive():
-        target = monster_target(get_alive_heroes(team))
-        monster.deal_damage(target)
-        print(f"\n{monster.name} a infligé {max(1, monster.attack - target.defense)} dégat(s) à {target.name} !")
-        if not target.is_alive():
-            return target
-    return None
+def choix_menu():
+    message = "Veuillez choisir une option :"
+    return get_user_choice_from_options(MENU, message)
 
 
-def monster_target(team):
-    target = random.choice(team)
-    return target
+def lancer_processus(choix):
+    if choix == 1:
+        lancer_jeu()
+    elif choix == 2:
+        print("Leaderboard non implémenté.")
+    elif choix == 3:
+        print("Au revoir !")
 
 
-def win(team, picked_monster):
-    if not is_team_alive(team):
+def main():
+    choix = choix_menu()
+    lancer_processus(choix)
+
+
+def afficher_game_over(equipe, score):
+    print("Game Over !")
+    print(f"Votre équipe a survécu à {score} vagues.")
+    print("Statut final de l'équipe :")
+    for hero in equipe:
+        print(f"{hero['name']} - HP: {hero['hp']}")
+
+
+def lancer_jeu():
+    db = connect_db()
+    pseudo = get_username(db)
+    heros_disponibles = recuperer_all_heroes(db)
+    monstres = recuperer_all_monsters(db)
+    equipe = create_team(heros_disponibles)
+    score = combat_a_mort(equipe, monstres)
+    afficher_game_over(equipe, score)
+    enregistrer_resultat_combat(db, pseudo, score)
+
+
+def enregistrer_resultat_combat(db, pseudo, score):
+    db["scores"].insert_one({
+        "player_name": pseudo,
+        "waves": score,
+    })
+
+
+def recuperer_all_heroes(db):
+    return list(db["characters"].find())
+
+
+def recuperer_all_monsters(db):
+    return list(db["monsters"].find())
+
+
+def connect_db():
+    client = MongoClient(os.getenv("MONGO_URL"))
+    return client["game_db"]
+
+
+def est_entite_en_vie(entite):
+    return entite["hp"] > 0
+
+
+def est_equipe_en_vie(equipe):
+    return any(est_entite_en_vie(hero) for hero in equipe)
+
+
+def selectionner_monstre(monstres):
+    monstre_choice = choice(monstres)
+    return copy.deepcopy(monstre_choice)
+
+
+def combat_a_mort(equipe, monstres):
+    vague = 1
+    while est_equipe_en_vie(equipe):
+        monstre = selectionner_monstre(monstres)
+        victoire = lancer_vague(equipe, monstre)
+        if victoire:
+            print(f"Victoire pour la vague {vague} !")
+            vague += 1
+    return vague
+
+
+def lancer_vague(equipe, monstre):
+    while est_entite_en_vie(monstre) and est_equipe_en_vie(equipe):
+        evenements = tour_de_vague(equipe, monstre)
+        afficher_evenements(evenements, equipe, monstre)
+        sleep(1)
+    return est_equipe_en_vie(equipe)
+
+
+def update_layout(equipe_panel, monstre_panel, info_panel):
+    LAYOUT["left"].update(equipe_panel)
+    LAYOUT["right"].update(monstre_panel)
+    LAYOUT["center"].update(info_panel)
+
+
+def afficher_evenements(evenements, equipe, monstre):
+    console.clear()
+    print("\n\n")
+
+    equipe_panel = create_panel(
+        "Equipe",
+        "\n".join(f"{hero['name']} - HP: {hero['hp']}" for hero in equipe),
+        "green",
+    )
+    monstre_panel = create_panel(
+        "Monstre",
+        f"{monstre['name']} - HP: {monstre['hp']}",
+        "red",
+    )
+    info_panel = create_panel("Evenements", "\n".join(evenements), "yellow")
+
+    update_layout(equipe_panel, monstre_panel, info_panel)
+    console.print(LAYOUT, height=10)
+
+
+def tour_de_vague(equipe, monstre):
+    evenements = []
+    evenements += tour_utilisateur(equipe, monstre)
+    if est_entite_en_vie(monstre):
+        evenements += tour_monstre(equipe, monstre)
+    return evenements
+
+
+def tour_monstre(equipe, monstre):
+    cible = recuperer_cible(equipe)
+    degat = attaquer(monstre, cible)
+    return [f"{monstre['name']} inflige {degat} degats a {cible['name']}"]
+
+
+def attaquer(attacker, cible):
+    degat = min(calculer_degats(attacker, cible), cible["hp"])
+    cible["hp"] -= degat
+    return degat
+
+
+def calculer_degats(attacker, cible):
+    return max(1, attacker["attack"] - cible["defense"])
+
+
+def recuperer_cible(equipe):
+    cible_potentielle = recuperer_heros_en_vie(equipe)
+    return choice(cible_potentielle)
+
+
+def recuperer_heros_en_vie(equipe):
+    return [hero for hero in equipe if est_entite_en_vie(hero)]
+
+
+def tour_utilisateur(equipe, monstre):
+    evenements = []
+    for hero in recuperer_heros_en_vie(equipe):
+        evenements += tour_perso_jouable(hero, monstre)
+    return evenements
+
+
+def tour_perso_jouable(hero, monstre):
+    if est_entite_en_vie(monstre):
+        degat = attaquer(hero, monstre)
+        return [f"{hero['name']} inflige {degat} degats a {monstre['name']}"]
+    return []
+
+
+def create_team(heroes):
+    equipe = []
+    while not equipe_est_complete(equipe):
+        afficher_equipe_actuelle(equipe)
+        heros_dispo = calculer_heros_disponibles(equipe, heroes)
+        options = construire_options(heros_dispo)
+        choix = get_user_choice_from_options(options, "Choisissez un héros : ")
+        selected_hero = copy.deepcopy(heros_dispo[choix - 1])
+        equipe.append(selected_hero)
+    return equipe
+
+
+def equipe_est_complete(equipe):
+    return len(equipe) >= TAILLE_MAX_EQUIPE
+
+
+def hero_to_string(hero):
+    return (
+        f"{hero['name']} - ATK : {hero['attack']} "
+        f"- HP : {hero['hp']} - DEF : {hero['defense']}"
+    )
+
+
+def construire_options(liste_heros_dispo):
+    return [hero_to_string(hero) for hero in liste_heros_dispo]
+
+
+def calculer_heros_disponibles(equipe, liste_heros):
+    return [hero for hero in liste_heros if hero not in equipe]
+
+
+def afficher_personnage(personnage):
+    print(hero_to_string(personnage))
+
+
+def afficher_equipe_actuelle(equipe):
+    for i in range(TAILLE_MAX_EQUIPE):
+        if i < len(equipe):
+            afficher_personnage(equipe[i])
+        else:
+            print("Vide")
+
+
+def get_username(db):
+    while True:
+        pseudo = input("Entrez votre pseudo : ").strip()
+        if validate_username(pseudo, db):
+            return pseudo
+        print("Pseudo invalide, veuillez réessayer.")
+
+
+def validate_username(pseudo, db):
+    return (
+        3 <= len(pseudo) <= 20
+        and pseudo not in BANNED_PSEUDOS
+        and not is_username_in_db(pseudo, db)
+    )
+
+
+def is_username_in_db(pseudo, db):
+    return db["scores"].find_one({"player_name": pseudo}) is not None
+
+
+def get_user_choice_from_options(options, message):
+    while True:
+        print(message)
+        for i, option in enumerate(options, start=1):
+            print(f"{i}. {option}")
+        choix = input("Entrez votre choix : ").strip()
+        if validate_user_choice(choix, 1, len(options)):
+            return int(choix)
+        print("Choix invalide, veuillez réessayer.")
+
+
+def validate_user_choice(choix, minimum, maximum):
+    if not choix.isdigit():
         return False
-    elif not picked_monster.is_alive():
-        return True
+    return minimum <= int(choix) <= maximum
 
 
-#ajouter des parametres avancés de debut de jeu :
-#choisir une taille de team precise,
-#pouvoir choisir plusieurs fois le meme heros,
-#pouvoir choisir un nombre de vagues max,
-#choisir le nombre de monstre a chaque vague,
-#faire en sorte que ce soit le meme a chaque fois
+if __name__ == "__main__":
+    main()

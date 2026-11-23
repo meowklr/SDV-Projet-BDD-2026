@@ -1,78 +1,42 @@
+import os
 import pymongo
-from models import Character
 
+# Dictionnaire des personnages et leurs statistiques
+CharacterList = [ 
+    {"name" : "Guerrier", "hp" : 100, "defense" : 10, "attack" : 15 },
+    {"name": "Mage", "hp" : 80, "defense": 5, "attack" : 20 },
+    {"name" : "Archer", "hp" : 90, "defense": 7, "attack" : 18},
+    {"name" : "Voleur", "hp" : 85, "defense": 8, "attack" : 22},
+    {"name" : "Paladin", "hp" : 110, "defense": 12, "attack" : 14},
+    {"name" : "Sorcier", "hp" : 70, "defense": 3, "attack" : 25},
+    {"name" : "Chevalier", "hp" : 120,"defense": 15, "attack" : 17},
+    {"name" : "Moine", "hp" : 95, "defense": 9, "attack" : 19 },
+    {"name" : "Berserker", "hp" : 105, "defense": 6, "attack" : 23},
+    {"name" : "Chasseur", "hp" : 100, "defense": 11, "attack" : 16}
+]
 
-def get_db():
-    client = pymongo.MongoClient("mongodb://localhost:27017/MONGO_")
-    db = client["game_db"]
-    return db
+EnemyList = [
+    {"name" : "Goblin", "hp" : 50, "defense" : 5, "attack" : 10},
+    {"name" : "Orc", "hp" : 120, "defense": 8, "attack" : 20 },
+    {"name" : "Dragon", "hp" : 300, "defense": 20, "attack" : 35 },
+    {"name" : "Zombie", "hp" : 70, "defense": 6, "attack" : 12 },
+    {"name" : "Troll", "hp" : 200, "defense": 15, "attack" : 25},
+    {"name" : "Spectre",  "hp" : 100, "defense": 10, "attack" : 18},
+    {"name" : "Golem", "hp" : 250, "defense": 25, "attack" : 30 },
+    {"name" : "Vampire", "hp" : 150, "defense": 12, "attack" : 22 },
+    {"name" : "Loup-Garou", "hp" : 180, "defense": 18, "attack" : 28 },
+    {"name" : "Squelette", "hp" : 90, "defense": 7, "attack" : 15 }
+]
 
+client = pymongo.MongoClient("mongodb://localhost:27017")
+database = client["game_db"]
 
-def get_all_heroes():
-    db = get_db()
-    heroes_dict = list(db["heroes"].find({}, {"_id": 0}))
-    return [Character(**hero) for hero in heroes_dict] 
+Characters = database["characters"]
+Monsters = database["monsters"]
+Scores = database["scores"]
 
+Characters.drop()
+Monsters.drop()
 
-def get_all_monsters():
-    db = get_db()
-    monsters_dict = list(db["monsters"].find({}, {"_id": 0}))
-    return [Character(**monster) for monster in monsters_dict]  
-
-
-def insert_heroes():
-    heroes_list=get_db()["heroes"]
-    heroes_list.insert_many([
-        {"name": "Kaelis Forgefer", "attack": 15, "defense": 10, "hp": 100, "max_hp": 100},
-        {"name": "Lysandra l’Archimage", "attack": 20, "defense": 5, "hp": 80, "max_hp": 80},
-        {"name": "Faelan Flèche-Sylve", "attack": 18, "defense": 7, "hp": 90, "max_hp": 90},
-        {"name": "Nyssa l’Insaisissable", "attack": 22, "defense": 8, "hp": 85, "max_hp": 85},
-        {"name": "Sigrid Lame-d’Acier", "attack": 14, "defense": 12, "hp": 110, "max_hp": 110},
-        {"name": "Azrael Ombrefoutre", "attack": 25, "defense": 3, "hp": 70, "max_hp": 70},
-        {"name": "Tharion le Colosse", "attack": 17, "defense": 15, "hp": 120, "max_hp": 120},
-        {"name": "Elowen la Pure", "attack": 19, "defense": 9, "hp": 95, "max_hp": 95},  
-        {"name": "Graven Brisecrâne", "attack": 23, "defense": 6, "hp": 105, "max_hp": 105},
-        {"name": "Rowan Feuillombre", "attack": 16, "defense": 11, "hp": 100, "max_hp": 100},
-        {"name": "Morghul Apocalypse", "attack": 50, "defense": 50, "hp": 200, "max_hp": 200}
-    ])
-
-
-def insert_monsters():
-    monsters_list=get_db()["monsters"]
-    monsters_list.insert_many([
-        {"name": "Gobelin", "attack": 10, "defense": 5, "hp": 50, "max_hp": 50},
-        {"name": "Orc", "attack": 20, "defense": 8, "hp": 120, "max_hp": 120},
-        {"name": "Dragon", "attack": 35, "defense": 20, "hp": 300, "max_hp": 300},
-        {"name": "Zombie", "attack": 12, "defense": 6, "hp": 70, "max_hp": 70},
-        {"name": "Troll", "attack": 25, "defense": 15, "hp": 200, "max_hp": 200},
-        {"name": "Spectre", "attack": 18, "defense": 10, "hp": 100, "max_hp": 100},
-        {"name": "Golem", "attack": 30, "defense": 25, "hp": 250, "max_hp": 250},
-        {"name": "Vampire", "attack": 22, "defense": 12, "hp": 150, "max_hp": 150},
-        {"name": "Loup-garou", "attack": 28, "defense": 18, "hp": 180, "max_hp": 180},
-        {"name": "Squelette", "attack": 15, "defense": 7, "hp": 90, "max_hp": 90}
-    ])
-
-
-def add_to_leaderboard(name, count, team):
-    db = get_db()
-    leaderboard = db["leaderboard"]
-    entry = {
-        "name": name,
-        "count": count,
-        "team": [hero.name for hero in team],
-    }
-    result = leaderboard.insert_one(entry)
-    return result.inserted_id
-
-def get_leaderboard():
-    db = get_db()
-    leaderboard_dict = list(db["leaderboard"].find({}, {"_id":0}).sort("count",pymongo.DESCENDING).limit(10))
-    return leaderboard_dict
-
-
-db = get_db()
-db["heroes"].delete_many({})
-db["monsters"].delete_many({})
-db["bonuses"].delete_many({})
-insert_heroes()
-insert_monsters()
+Characters.insert_many(CharacterList)
+Monsters.insert_many(EnemyList)
