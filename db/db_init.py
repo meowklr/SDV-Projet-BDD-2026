@@ -1,7 +1,7 @@
 import os
 import pymongo
 
-from models import (
+from db.models import (
   CharacterDB,
   CharacterSaveDB,
   Difficulty,
