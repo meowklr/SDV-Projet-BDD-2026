@@ -33,6 +33,10 @@ class Game:
       for c in docs
     ]
 
+  def save_game(self):
+    # Save the game state to a file or database
+    pass
+
   def load_game(self):
     # Load the game state from a file or database
     pass

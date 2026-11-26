@@ -1,21 +1,15 @@
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.columns import Columns
+
 class View:
-  """Affichages à appeler depuis le contrôleur du jeu.
-
-  Exemple d'utilisation dans le contrôleur :
-      view = View()
-      view.title_screen_view()
-      view.player_turn_view(team, character, enemies)
-
-  Remplace progressivement les appels à print par l'interface graphique
-  ou les interactions console souhaitées.
-  """
-
   def __init__(self):
     """Initialize the View class."""
     pass
 
   def inventory_view(self, list, team):
-    print(f"Inventory View - {list} - Team: {team}")
+    console.print(Panel(f"Inventory View - List: {list} - Team: {team}")) 
 
   def use_item_view(self, item, target):
     print(f"Use Item View - Item: {item} - Target: {target}")
@@ -27,7 +21,14 @@ class View:
     print(f"Target Selection View - Team: {team} - Character: {character} - Enemies: {enemies}")
 
   def turn_info_view(self, team, event, enemies):
-    print(f"Turn Info View - Team: {team} - Event: {event} - Enemies: {enemies}")
+    team_txt = "\n".join(f"{c.name} - HP: {c.hp}/{c.max_hp}" for c in team)
+    enemies_txt = "\n".join(f"{e.name} - HP: {e.hp}/{e.max_hp}" for e in enemies)
+
+    box_team = self.display.create_info_box("Equipe", team_txt, "green", "white")
+    box_event = self.display.create_info_box("Action", event, "yellow", "bold yellow")
+    box_enemies = self.display.create_info_box("Ennemis", enemies_txt, "red", "white")
+
+    self.display.display_view(Columns([box_team, box_event, box_enemies]))
 
   def team_selection_view(self, team, list_selection):
     print(f"Team Selection View - Team: {team} - Selection: {list_selection}")
@@ -37,7 +38,14 @@ class View:
     return choix
 
   def leaderboard_view(self, scores):
-    print(f"Leaderboard View - Scores: {scores}")
+    table = Table(title="Leaderboard", border_style="yellow")
+    table.add_column("#", justify="right", style="cyan")
+    table.add_column("Joueur", style="bold white")
+    table.add_column("Score", justify="right", style="green")
+    for i, s in enumerate(scores, start=1):
+      table.add_row(str(i), s["player_name"], str(s["score"]))
+
+    self.display.display_view(table)
 
   def game_over_view(self):
     print("Game Over View")

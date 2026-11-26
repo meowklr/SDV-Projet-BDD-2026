@@ -15,10 +15,11 @@ class Player:
       self.team.append(chosen)
     return self.team
 
+
   def pick_character(self, available_characters):
-    print("\nChoisissez un personnage :")
+    self.console.print("\nChoisissez un personnage :")
     for i, char in enumerate(available_characters, start=1):
-      print(f"{i}. {char.name} (HP: {char.hp}, ATK: {char.attack}, DEF: {char.defense})")
+      self.console.print(f"{i}. {char.name} (HP: {char.hp}, ATK: {char.attack}, DEF: {char.defense})")
     while True:
       choice = input("Numéro du personnage : ").strip()
       if choice.isdigit() and 1 <= int(choice) <= len(available_characters):

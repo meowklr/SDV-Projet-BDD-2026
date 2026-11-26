@@ -5,7 +5,6 @@ from db.db_init import DifficultyList, EnemyList, RarityList, VagueList
 
 RARITY_RATES = {r["name"]: r["drop_rate"] for r in RarityList}
 
-
 class Vague:
   def __init__(self, current_vague, enemies):
     self.current_vague = current_vague
@@ -78,6 +77,6 @@ class Vague:
 
   def get_difficulty(self):
     for difficulty in DifficultyList:
-      if difficulty["lap"] == self.current_vague:
+      if difficulty["lap"] == self.current_vague // 10:
         return difficulty
     return DifficultyList[-1]
