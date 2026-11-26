@@ -17,7 +17,6 @@ class CharacterDB:
       "attack": self.attack,
     }
 
-
 @dataclass
 class MonsterDB:
   name: str
