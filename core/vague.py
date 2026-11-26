@@ -12,8 +12,6 @@ class Vague:
     # Logic to pick enemies based on the current wave
     self.enemies = range(int(current_vague * self.get_difficulty()))
 
-
-
   def play_vague(self, player):
     while player.is_team_alive() and any(enemy.is_alive() for enemy in self.enemies):
       self._play_team_turns(player)
