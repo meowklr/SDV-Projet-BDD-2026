@@ -1,8 +1,3 @@
-from core.game import Game
-from core.entities import Entity, Character, Enemy
-from core.items import Item, Equipable, Consumable
-from ui.display import Affichage
-
 class View:
   """Affichages à appeler depuis le contrôleur du jeu.
 
@@ -21,6 +16,9 @@ class View:
 
   def inventory_view(self, list, team):
     print(f"Inventory View - {list} - Team: {team}")
+
+  def use_item_view(self, item, target):
+    print(f"Use Item View - Item: {item} - Target: {target}")
     
   def player_turn_view(self, team, character, enemies):
     print(f"Player Turn View - Team: {team} - Character: {character} - Enemies: {enemies}")
@@ -35,7 +33,8 @@ class View:
     print(f"Team Selection View - Team: {team} - Selection: {list_selection}")
 
   def title_screen_view(self):
-    print("Title Screen View")
+    choix = int(input("Bienvune dans Morghul's de Rayan ! Souhitez-vous lancer le jeu(1), charger une partie(2), voir le classement(3) ou quitter(4) ?"))
+    return choix
 
   def leaderboard_view(self, scores):
     print(f"Leaderboard View - Scores: {scores}")

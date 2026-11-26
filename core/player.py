@@ -1,5 +1,4 @@
 from core.items import Item, Equipable, Consumable
-from ui.display import Display
 
 #player
 class Player:
@@ -17,15 +16,32 @@ class Player:
     return self.team
 
   def pick_character(self, available_characters):
-    character = Display.display_character_selection(available_characters)
-    return character  
+    print("\nChoisissez un personnage :")
+    for i, char in enumerate(available_characters, start=1):
+      print(f"{i}. {char.name} (HP: {char.hp}, ATK: {char.attack}, DEF: {char.defense})")
+    while True:
+      choice = input("Numéro du personnage : ").strip()
+      if choice.isdigit() and 1 <= int(choice) <= len(available_characters):
+        return available_characters[int(choice) - 1]
+      print("Choix invalide, réessayez.")
 
   def is_team_alive(self):
     return any(member.is_alive() for member in self.team) 
 
   def check_inventory(self):
-    item = Display.display_inventory(self.inventory)
-    return item  
+    if not self.inventory:
+      print("Inventaire vide.")
+      return None
+    print("\nInventaire :")
+    for i, item in enumerate(self.inventory, start=1):
+      print(f"{i}. {item.name} ({item.item_type} - {item.rarity})")
+    while True:
+      choice = input("Numéro de l'objet (0 pour annuler) : ").strip()
+      if choice == "0":
+        return None
+      if choice.isdigit() and 1 <= int(choice) <= len(self.inventory):
+        return self.inventory[int(choice) - 1]
+      print("Choix invalide, réessayez.")
 
   def use_item(self, item, target):
     if isinstance(item, Consumable):

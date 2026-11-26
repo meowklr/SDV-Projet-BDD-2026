@@ -116,4 +116,5 @@ classDiagram
         +VueGameOver()
         +VueChargerSauvegarde()
         +VueQuitter()
+        +VueUsageItem
     }

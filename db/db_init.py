@@ -151,8 +151,6 @@ DifficultyList = [difficulty.to_dict() for difficulty in [
              defense_multiplier=2.8, item_multiplier=1.8),
 ]]
 
-
-
 SavesList = [save.to_dict() for save in [
   SaveDB(
     player_name="Player1",
@@ -197,39 +195,43 @@ SavesList = [save.to_dict() for save in [
   ),
 ]]
 
-print("Initializing database...")
-client: pymongo.MongoClient = pymongo.MongoClient(os.getenv("MONGO_URL"))
-database = client["game_db"]
 
-Characters = database["characters"]
-Monsters = database["monsters"]
-Scores = database["scores"]
-difficulty = database["difficulty"]
-Vagues = database["vagues"]
-Items = database["items"]
-rarities = database["rarities"]
-Saves = database["saves"]
+if __name__ == "__main__":
+  print("Initializing database...")
+  client: pymongo.MongoClient = pymongo.MongoClient(
+    os.getenv("MONGO_URL", "mongodb://localhost:27017/")
+  )
+  database = client["game_rayan_db"]
 
-print("Dropping existing collections...")
-Characters.drop()
-Monsters.drop()
-Scores.drop()
-difficulty.drop()
-Vagues.drop()
-Items.drop()
-rarities.drop()
-Saves.drop()
+  Characters = database["characters"]
+  Monsters = database["monsters"]
+  Scores = database["scores"]
+  difficulty = database["difficulty"]
+  Vagues = database["vagues"]
+  Items = database["items"]
+  rarities = database["rarities"]
+  Saves = database["saves"]
 
-print("Inserting documents...")
-Characters.insert_many(CharacterList)
-Monsters.insert_many(EnemyListDict)
-Scores.insert_many(ScoresList)
-difficulty.insert_many(DifficultyList)
-Vagues.insert_many(VagueList)
-Items.insert_many(ItemListDict)
-rarities.insert_many(RarityList)
-Saves.insert_many(SavesList)
+  print("Dropping existing collections...")
+  Characters.drop()
+  Monsters.drop()
+  Scores.drop()
+  difficulty.drop()
+  Vagues.drop()
+  Items.drop()
+  rarities.drop()
+  Saves.drop()
 
-print("Database populated:")
-for name in database.list_collection_names():
-  print(f"  {name}: {database[name].count_documents({})} documents")
+  print("Inserting documents...")
+  Characters.insert_many(CharacterList)
+  Monsters.insert_many(EnemyListDict)
+  Scores.insert_many(ScoresList)
+  difficulty.insert_many(DifficultyList)
+  Vagues.insert_many(VagueList)
+  Items.insert_many(ItemListDict)
+  rarities.insert_many(RarityList)
+  Saves.insert_many(SavesList)
+
+  print("Database populated:")
+  for name in database.list_collection_names():
+    print(f"  {name}: {database[name].count_documents({})} documents")
