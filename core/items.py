@@ -9,6 +9,12 @@ class Item :
     self.item_type = item_type
     self.stats = stats
 
+  def __str__(self):
+    return f"{self.name} ({self.rarity})"
+
+  def __str__(self):
+    return f"{self.name} - {self.description} - Drop Rate: {self.droprate} - Rarity: {self.rarity} - Type: {self.item_type} - Stats: {self.stats}"
+
 class Consumable(Item):
   def __init__(self, name, description, droprate, rarity, item_type, stats):
     super().__init__(name, description, droprate, rarity, item_type, stats)

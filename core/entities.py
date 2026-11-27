@@ -8,6 +8,9 @@ class Entity:
     self._attack = attack
     self._defense = defense
 
+  def __str__(self):
+    return f"{self.name} - HP: {self.hp}/{self.max_hp} - ATK: {self.attack} - DEF: {self.defense}"
+
   @property
   def attack(self):
     return self._attack
@@ -38,6 +41,9 @@ class Entity:
   def play_turn(self, target):
     self.attack_target(target)
 
+  def __str__(self):
+    return f"{self.name} - PV: {self.hp}/{self.max_hp} | ATK: {self.attack} | DEF: {self.defense}"
+
 
 #character est la classe enfant de entity
 class Character(Entity):
@@ -58,6 +64,10 @@ class Character(Entity):
     for item in self.equipment:
       total_defense += item.stats.get("defense", 0)
     return total_defense
+
+  def __str__(self):
+    equipment_str = ", ".join(f"{item.name} ({item.item_type})" for item in self.equipment) if self.equipment else "Aucun équipement"
+    return f"{self.name} - HP: {self.hp}/{self.max_hp} - ATK: {self.attack} - DEF: {self.defense} - Équipement: {equipment_str}"
 
   def equip_item(self, item):
     self.equipment.append(item)
@@ -89,6 +99,9 @@ class Enemy(Entity):
   def __init__(self, name, hp, max_hp, attack, defense, loots = None):
     super().__init__(name, hp, max_hp, attack, defense)
     self.loots = loots if loots is not None else []
+
+  def __str__(self):
+    return f"{self.name} - HP: {self.hp}/{self.max_hp} - ATK: {self.attack} - DEF: {self.defense} - Loots: {', '.join(item.name for item in self.loots) if self.loots else 'Aucun loot'}"
 
   def drop_loot(self):
     #tirer au sort les objets droppés selon leur droprate et leur rareté

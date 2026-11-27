@@ -2,6 +2,8 @@ import random
 from core.entities import Enemy
 from core.items import Consumable, Equipable
 from db.db_init import DifficultyList, EnemyList, RarityList, VagueList
+from ui.display import Affichage
+from ui.views import OPTIONS_TOUR, VueChoixCible, VueInfoTour, VueTourJoueur
 
 RARITY_RATES = {r["name"]: r["drop_rate"] for r in RarityList}
 
@@ -9,6 +11,10 @@ class Vague:
   def __init__(self, current_vague, enemies):
     self.current_vague = current_vague
     self.enemies = enemies
+
+  def __str__(self):
+    enemies_str = ', '.join(str(enemy) for enemy in self.enemies)
+    return f"Vague: {self.current_vague}, Enemies: [{enemies_str}]"
 
   def _build_loot_items(self, dropable_items):
     loots = []
@@ -59,24 +65,66 @@ class Vague:
       if not member.is_alive():
         continue
 
-      enemy = next((enemy for enemy in self.enemies if enemy.is_alive()), None)
-      if enemy is None:
+      living_enemies = [enemy for enemy in self.enemies if enemy.is_alive()]
+      if not living_enemies:
         break
 
-      member.play_turn(enemy)
-      if not enemy.is_alive():
-        player.inventory.extend(enemy.drop_loot())
+      while True:
+        action = Affichage.display_vue(
+          VueTourJoueur(player.team, member, living_enemies),
+          max_index=len(OPTIONS_TOUR),
+        )
+        if action is None:
+          continue
+
+        if action == 0:
+          target_index = Affichage.display_vue(
+            VueChoixCible(player.team, member, living_enemies),
+            max_index=len(living_enemies),
+          )
+          if target_index is None:
+            continue
+
+          target = living_enemies[target_index]
+          damages = member.attack_target(target)
+          event = f"{member.name} attaque {target.name} et inflige {damages} dégâts."
+
+          if not target.is_alive():
+            loots = target.drop_loot()
+            player.inventory.extend(loots)
+            event += f"\n{target.name} est vaincu !"
+            if loots:
+              event += "\nLoot : " + ", ".join(item.name for item in loots)
+
+          Affichage.display_vue(VueInfoTour(player.team, event, self.enemies))
+          break
+
+        elif action == 1:
+          event = player.check_inventory()
+          if event is None:
+            continue
+          Affichage.display_vue(VueInfoTour(player.team, event, self.enemies))
+          break
+
+        elif action == 2:
+          event = f"{member.name} passe son tour."
+          Affichage.display_vue(VueInfoTour(player.team, event, self.enemies))
+          break
+
 
   def _play_enemy_turns(self, player):
-    living_members = [member for member in player.team if member.is_alive()]
     for enemy in self.enemies:
+      living_members = [member for member in player.team if member.is_alive()]
       if not enemy.is_alive() or not living_members:
         continue
-      enemy.play_turn(random.choice(living_members))
-      living_members = [member for member in player.team if member.is_alive()]
+      target = random.choice(living_members)
+      damages = enemy.attack_target(target)
+      event = f"{enemy.name} attaque {target.name} et inflige {damages} dégâts."
+      Affichage.display_vue(VueInfoTour(player.team, event, self.enemies))
 
   def get_difficulty(self):
+    lap = (self.current_vague - 1) // 10 + 1
     for difficulty in DifficultyList:
-      if difficulty["lap"] == self.current_vague // 10:
+      if difficulty["lap"] == lap:
         return difficulty
     return DifficultyList[-1]

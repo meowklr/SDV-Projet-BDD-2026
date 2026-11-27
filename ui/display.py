@@ -1,38 +1,116 @@
-from rich.console import Console
+
+from typing import Callable, List
 from rich.panel import Panel
+from rich.text import Text
+from rich.live import Live
+from rich.console import Console
+import readchar
 
-class Display:
-  def __init__(self):
-    self.console = Console()
-    self.console.clear()
 
-  def display_view(self, renderable):
-    self.console.clear()
-    self.console.print(renderable)
+SPECIAL_KEYS = {
+    readchar.key.UP: "UP",
+    readchar.key.DOWN: "DOWN",
+    readchar.key.LEFT: "LEFT",
+    readchar.key.RIGHT: "RIGHT",
+    readchar.key.ENTER: "ENTER",
+    readchar.key.BACKSPACE: "BACKSPACE",
+    readchar.key.TAB: "TAB",
+    readchar.key.ESC: "ESC",
+    readchar.key.SPACE: "SPACE",
+    readchar.key.DELETE: "DELETE",
+}
 
-  def show_error(self, error_message):
-    self.console.print(
-      Panel(error_message, title="Erreur", border_style="red", style="bold red")
-    )
 
-  def create_info_box(self, title, info, box_color, text_color):
-    return Panel(
-      f"[{text_color}]{info}[/]",
-      title=title,
-      border_style=box_color,
-      expand=True,
-    )
+def format_key(k: str) -> str:
+    if k in SPECIAL_KEYS:
+        return SPECIAL_KEYS[k]
+    if k.isprintable():
+        return k
+    # Fallback for unmapped control keys (e.g., Ctrl+C -> '\x03')
+    return repr(k)
 
-  def create_select_box(self, title, items, index, box_color, text_color, hover_color):
-    lines = []
-    for i, item in enumerate(items):
-      if i == index:
-        lines.append(f"[{hover_color}] > {i + 1}. {item} [/]")
-      else:
-        lines.append(f"[{text_color}]   {i + 1}. {item}[/]")
-    return Panel(
-      "\n".join(lines),
-      title=title,
-      border_style=box_color,
-      expand=True,
-    )
+
+CANCEL_KEYS = (readchar.key.CTRL_C, readchar.key.ESC,
+               "\x1b", "\x1b\x1b", "\x03", "\x1b\x03")
+
+
+class Affichage:
+
+	console = Console()
+
+	@classmethod
+	def display_vue(cls, vue: Callable, max_index=1):
+		if max_index <= 0:
+			max_index = 1
+		index_actuel = 0
+		with Live(vue(index_actuel), console=cls.console, screen=True, auto_refresh=False) as live:
+			live.refresh()
+			while True:
+				touche = readchar.readkey()
+				if touche == readchar.key.UP:
+					index_actuel = (index_actuel - 1) % max_index
+					live.update(vue(index_actuel), refresh=True)
+				elif touche == readchar.key.DOWN:
+					index_actuel = (index_actuel + 1) % max_index
+					live.update(vue(index_actuel), refresh=True)
+				elif touche in (readchar.key.ENTER, "\r", "\n"):
+					return index_actuel
+				elif touche in CANCEL_KEYS:
+					return None
+
+	@classmethod
+	def demander_input(cls, prompt: str) -> str:
+		cls.console.clear()
+		cls.console.print(Panel(prompt, title="[bold cyan]✦ Morghul's Chronicles ✦[/]", border_style="cyan"))
+		return cls.console.input("[bold yellow]> [/]")
+
+	BOX_HEIGHT = 20
+
+	@classmethod
+	def show_error(cls, error: str):
+		texte = Text(error, style="bold red")
+		return Panel(
+			texte,
+			title="[bold]Erreur[/bold]",
+			border_style="red",
+			height=cls.BOX_HEIGHT,
+			expand=True,
+			padding=(1, 2),
+		)
+
+	@classmethod
+	def create_info_box(cls, titre: str, info: str, box_color: str, text_color: str) -> Panel:
+		texte = Text(info, justify="center", style=text_color)
+		return Panel(
+			texte,
+			title=f"[bold {box_color}]✦ {titre} ✦[/]",
+			title_align="center",
+			border_style=box_color,
+			height=cls.BOX_HEIGHT,
+			expand=True,
+			padding=(1, 2),
+		)
+
+	@classmethod
+	def create_select_box(cls, titre: str, items: List, index: int, box_color: str, text_color: str, hover_color: str) -> Panel:
+		texte = Text(justify="center")
+		dernier = len(items) - 1
+		for i, item in enumerate(items):
+			fin = "\n" if i < dernier else ""
+			if i == index:
+				texte.append(f" ❯ {item} ❮ ", style=f"bold {hover_color} reverse")
+			else:
+				texte.append(f"   {item}   ", style=text_color)
+			texte.append(fin)
+
+		return Panel(
+			texte,
+			title=f"[bold {box_color}]✦ {titre} ✦[/]",
+			title_align="center",
+			subtitle="[dim]↑/↓ naviguer • ⏎ valider[/dim]",
+			subtitle_align="center",
+			border_style=box_color,
+			height=cls.BOX_HEIGHT,
+			expand=True,
+			padding=(1, 2),
+		)

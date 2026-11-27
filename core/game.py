@@ -4,6 +4,9 @@ import pymongo
 from core.entities import Character
 from core.vague import Vague
 from db.db_init import CharacterList
+from db.models import ScoreDB
+from ui.display import Affichage
+from ui.views import OPTIONS_GAME_OVER, VueGameOver, VueLeaderboard
 
 
 class Game:
@@ -53,14 +56,15 @@ class Game:
           "player_name": self.player.name,
           "score": self.player.score,
         })
-        print(f"Game Over! Score final : {self.player.score}")
+        choice = Affichage.display_vue(VueGameOver(), max_index=len(OPTIONS_GAME_OVER))
+        if choice in (1, None):
+          self.exit()
         break
 
   def show_leaderboard(self):
-    scores = self.db["scores"].find().sort("score", pymongo.DESCENDING)
-    print("Leaderboard:")
-    for score in scores:
-      print(f"{score['player_name']}: {score['score']}")
+    docs = list(self.db["scores"].find().sort("score", pymongo.DESCENDING).limit(10))
+    scores = [ScoreDB(player_name=doc["player_name"], score=doc["score"]) for doc in docs]
+    Affichage.display_vue(VueLeaderboard(scores))
 
   def exit(self):
     self.client.close()
