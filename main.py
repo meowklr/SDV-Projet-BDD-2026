@@ -13,9 +13,11 @@ def main():
       game = Game(player)
       player.create_team(game.load_characters())
       game.launch_game()
+      game.client.close()
     elif start_choice == 1:
       game = Game(None)
       game.load_game()
+      game.client.close()
     elif start_choice == 2:
       game = Game(None)
       game.show_leaderboard()

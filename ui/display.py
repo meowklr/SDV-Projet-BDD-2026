@@ -2,7 +2,6 @@
 from typing import Callable, List
 from rich.panel import Panel
 from rich.text import Text
-from rich.live import Live
 from rich.console import Console
 import readchar
 
@@ -43,20 +42,25 @@ class Affichage:
 		if max_index <= 0:
 			max_index = 1
 		index_actuel = 0
-		with Live(vue(index_actuel), console=cls.console, screen=True, auto_refresh=False) as live:
-			live.refresh()
+		cls.console.file.write("\x1b[?25l")  # cache le curseur
+		try:
 			while True:
+				cls.BOX_HEIGHT = max(10, cls.console.size.height - 2)
+				cls.console.clear()
+				cls.console.print(vue(index_actuel), end="")
+				cls.console.file.flush()
 				touche = readchar.readkey()
 				if touche == readchar.key.UP:
 					index_actuel = (index_actuel - 1) % max_index
-					live.update(vue(index_actuel), refresh=True)
 				elif touche == readchar.key.DOWN:
 					index_actuel = (index_actuel + 1) % max_index
-					live.update(vue(index_actuel), refresh=True)
 				elif touche in (readchar.key.ENTER, "\r", "\n"):
 					return index_actuel
 				elif touche in CANCEL_KEYS:
 					return None
+		finally:
+			cls.console.file.write("\x1b[?25h")  # réaffiche le curseur
+			cls.console.file.flush()
 
 	@classmethod
 	def demander_input(cls, prompt: str) -> str:
