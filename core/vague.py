@@ -1,7 +1,7 @@
 import random
 from core.entities import Enemy
 from core.items import Consumable, Equipable
-from db.db_init import DifficultyList, EnemyListDict, ItemListDict, RarityList, VagueList
+from db.db_init import DifficultyList, EnemyList, RarityList, VagueList
 from ui.display import Affichage
 from ui.views import OPTIONS_TOUR, VueChoixCible, VueInfoTour, VueTourJoueur
 
