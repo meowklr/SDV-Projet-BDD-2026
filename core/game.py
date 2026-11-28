@@ -2,9 +2,10 @@ import os
 import sys
 import pymongo
 from core.entities import Character
+from core.items import Consumable, Equipable
 from core.player import Player
 from core.vague import Vague
-from db.db_init import CharacterList
+from db.db_init import CharacterList, ItemList, RarityList
 from db.models import CharacterSaveDB, MonsterSaveDB, SaveDB, ScoreDB
 from ui.display import Affichage
 from ui.views import OPTIONS_GAME_OVER, VueChargerSauvegarde, VueGameOver, VueLeaderboard
@@ -18,6 +19,22 @@ class Game:
       os.getenv("MONGO_URL", "mongodb://localhost:27017/")
     )
     self.db = self.client["game_rayan_db"]
+
+  def _build_item(self, item_name):
+    items_by_name = {item.name: item for item in ItemList}
+    rarity_rates = {r["name"]: r["drop_rate"] for r in RarityList}
+    item_db = items_by_name.get(item_name)
+    if item_db is None:
+      return None
+    item_cls = Consumable if item_db.consumable else Equipable
+    return item_cls(
+      name=item_db.name,
+      description=item_db.name,
+      droprate=rarity_rates.get(item_db.rarity, 0.1),
+      rarity=item_db.rarity,
+      item_type=item_db.item_type,
+      stats=item_db.effect,
+    )
 
   def load_characters(self):
     try:
@@ -46,7 +63,7 @@ class Game:
         {
           "name": member.name,
           "hp": member.hp,
-          "max_hp": member.max_hp,
+          "max_hp": member._max_hp,
           "attack": member._attack,
           "defense": member._defense,
           "equipement": [item.name for item in member.equipment],
@@ -77,14 +94,24 @@ class Game:
         player_name=doc["player_name"],
         score=doc["score"],
         equipe=[
-          CharacterSaveDB(name=character["name"], hp=character["hp"], equipement=[])
+          CharacterSaveDB(
+            name=character["name"],
+            hp=character["hp"],
+            equipement=[
+              item for name in character.get("equipement", [])
+              if (item := self._build_item(name)) is not None
+            ],
+          )
           for character in doc.get("equipe", doc.get("team", []))
         ],
         monsters=[
           MonsterSaveDB(name=monster["name"], hp=monster["hp"])
           for monster in doc.get("monsters", [])
         ],
-        inventaire=[],
+        inventaire=[
+          item for name in doc.get("inventaire", [])
+          if (item := self._build_item(name)) is not None
+        ],
       )
       for doc in docs
     ]
@@ -97,18 +124,36 @@ class Game:
       return False
 
     doc = docs[index]
+    chars_by_name = {c["name"]: c for c in CharacterList}
     team_docs = doc.get("equipe", doc.get("team", []))
-    team = [
-      Character(
-        name=member["name"],
-        hp=member["hp"],
-        max_hp=member.get("max_hp", member["hp"]),
-        attack=member.get("attack", 15),
-        defense=member.get("defense", 5),
+    team = []
+    for member in team_docs:
+      base = chars_by_name.get(member["name"], {})
+      equipment = [
+        item for name in member.get("equipement", [])
+        if (item := self._build_item(name)) is not None
+      ]
+      team.append(
+        Character(
+          name=member["name"],
+          hp=member["hp"],
+          max_hp=member.get("max_hp", base.get("hp", member["hp"])),
+          attack=member.get("attack", base.get("attack", 15)),
+          defense=member.get("defense", base.get("defense", 5)),
+          equipment=equipment,
+        )
       )
-      for member in team_docs
+
+    inventory = [
+      item for name in doc.get("inventaire", [])
+      if (item := self._build_item(name)) is not None
     ]
-    self.player = Player(name=doc["player_name"], score=doc["score"], team=team)
+    self.player = Player(
+      name=doc["player_name"],
+      score=doc["score"],
+      team=team,
+      inventory=inventory,
+    )
     self.vague = Vague(
       current_vague=doc.get("current_vague", doc["score"] + 1),
       enemies=[],

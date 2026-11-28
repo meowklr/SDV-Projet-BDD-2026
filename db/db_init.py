@@ -120,12 +120,12 @@ EnemyList = [
 EnemyListDict = [monster.to_dict() for monster in EnemyList]
 
 VagueList = [vague.to_dict() for vague in [
-  VagueDB(start_number=1, end_number=5, monsters=[EnemyList[0], EnemyList[1]]),
-  VagueDB(start_number=6, end_number=10, monsters=[EnemyList[3], EnemyList[9]]),
-  VagueDB(start_number=11, end_number=15, monsters=[EnemyList[4], EnemyList[5]]),
+  VagueDB(start_number=1, end_number=5, monsters=[EnemyList[0], EnemyList[1], EnemyList[10]]),
+  VagueDB(start_number=6, end_number=10, monsters=[EnemyList[3], EnemyList[9], EnemyList[14]]),
+  VagueDB(start_number=11, end_number=15, monsters=[EnemyList[4], EnemyList[5], EnemyList[11]]),
   VagueDB(start_number=16, end_number=20, monsters=[EnemyList[6], EnemyList[7]]),
-  VagueDB(start_number=21, end_number=25, monsters=[EnemyList[8]]),
-  VagueDB(start_number=26, end_number=30, monsters=[EnemyList[2]]),
+  VagueDB(start_number=21, end_number=25, monsters=[EnemyList[8], EnemyList[12]]),
+  VagueDB(start_number=26, end_number=30, monsters=[EnemyList[2], EnemyList[13]]),
 ]]
 
 DifficultyList = [difficulty.to_dict() for difficulty in [

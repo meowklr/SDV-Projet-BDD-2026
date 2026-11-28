@@ -4,12 +4,9 @@ class Entity:
   def __init__(self, name, hp, max_hp, attack, defense):
     self.name = name
     self.hp = hp
-    self.max_hp = max_hp
+    self._max_hp = max_hp
     self._attack = attack
     self._defense = defense
-
-  def __str__(self):
-    return f"{self.name} - HP: {self.hp}/{self.max_hp} - ATK: {self.attack} - DEF: {self.defense}"
 
   @property
   def attack(self):
@@ -19,6 +16,9 @@ class Entity:
   def defense(self):
     return self._defense
 
+  @property
+  def max_hp(self):
+    return self._max_hp
 
   def is_alive(self):
     return self.hp > 0
@@ -63,7 +63,14 @@ class Character(Entity):
     total_defense = self._defense
     for item in self.equipment:
       total_defense += item.stats.get("defense", 0)
-    return total_defense
+    return max(0, total_defense)
+
+  @property
+  def max_hp(self):
+    total_max_hp = self._max_hp
+    for item in self.equipment:
+      total_max_hp += item.stats.get("hp", 0)
+    return total_max_hp
 
   def __str__(self):
     equipment_str = ", ".join(f"{item.name} ({item.item_type})" for item in self.equipment) if self.equipment else "Aucun équipement"
@@ -75,6 +82,8 @@ class Character(Entity):
   def unequip_item(self, item):
     if item in self.equipment:
       self.equipment.remove(item)
+      if self.hp > self.max_hp:
+        self.hp = self.max_hp
 
   def is_slot_available(self, slot_name : str):
     for item in self.equipment:

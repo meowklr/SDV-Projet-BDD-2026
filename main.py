@@ -8,7 +8,9 @@ def main():
   while True:
     start_choice = Affichage.display_vue(VueEcranTitre(), max_index=len(OPTIONS_ECRAN_TITRE))
     if start_choice == 0:
-      player_name = Affichage.demander_input("Entrez votre nom de joueur : ").strip()
+      player_name = ""
+      while not player_name:
+        player_name = Affichage.demander_input("Entrez votre nom de joueur : ").strip()
       player = Player(player_name)
       game = Game(player)
       player.create_team(game.load_characters())

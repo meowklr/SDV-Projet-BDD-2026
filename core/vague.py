@@ -1,7 +1,7 @@
 import random
 from core.entities import Enemy
 from core.items import Consumable, Equipable
-from db.db_init import DifficultyList, EnemyList, RarityList, VagueList
+from db.db_init import DifficultyList, EnemyListDict, ItemListDict, RarityList, VagueList
 from ui.display import Affichage
 from ui.views import OPTIONS_TOUR, VueChoixCible, VueInfoTour, VueTourJoueur
 
@@ -16,10 +16,10 @@ class Vague:
     enemies_str = ', '.join(str(enemy) for enemy in self.enemies)
     return f"Vague: {self.current_vague}, Enemies: [{enemies_str}]"
 
-  def _build_loot_items(self, dropable_items):
+  def _build_loot_items(self, dropable_items, item_multiplier = 1.0):
     loots = []
     for item_db in dropable_items:
-      droprate = RARITY_RATES.get(item_db.rarity, 0.1)
+      droprate = min(1.0, RARITY_RATES.get(item_db.rarity, 0.1) * item_multiplier)
       item_cls = Consumable if item_db.consumable else Equipable
       loots.append(item_cls(
         name=item_db.name,
@@ -51,7 +51,7 @@ class Vague:
       hp = max(1, int(tpl.hp * diff["health_multiplier"]))
       atk = max(1, int(tpl.attack * diff["attack_multiplier"]))
       defense = max(0, int(tpl.defense * diff["defense_multiplier"]))
-      loots = self._build_loot_items(tpl.dropable)
+      loots = self._build_loot_items(tpl.dropable, diff["item_multiplier"])
       self.enemies.append(Enemy(tpl.name, hp, hp, atk, defense, loots))
     return self.enemies
 

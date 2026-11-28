@@ -43,11 +43,15 @@ class Player:
       return None
 
     item = self.inventory[item_index]
-    target_index = Affichage.display_vue(VueSelectionCibleObjet(item, self.team), max_index=len(self.team))
+    targets = [m for m in self.team if m.is_alive()] if isinstance(item, Consumable) else self.team
+    if not targets:
+      return None
+
+    target_index = Affichage.display_vue(VueSelectionCibleObjet(item, targets), max_index=len(targets))
     if target_index is None:
       return None
 
-    target = self.team[target_index]
+    target = targets[target_index]
     self.use_item(item, target)
     return f"{item.name} utilisé(e) sur {target.name}."
 
